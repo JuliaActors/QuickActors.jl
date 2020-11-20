@@ -1,0 +1,16 @@
+name = "QuickActors"
+uuid = "c86ec91e-d05b-4b64-86bb-f21aa3ce0e81"
+authors = ["Krisztián Schäffer"]
+version = "0.1.0"
+
+[deps]
+ActorInterfaces = "7e194583-e687-41a0-9133-1c22a29c80af"
+
+[compat]
+julia = "^1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
