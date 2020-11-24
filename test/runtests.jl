@@ -25,7 +25,7 @@ end
 
 function Classic.onmessage(me::Actor{Spawner}, msg::SpawnTree)
     if msg.depth > 0
-        for i = 1:2
+        for i = 1:msg.childcount
             child = spawn(me, Spawner())
             send(me, child, SpawnTree(msg.childcount, msg.depth - 1))
         end
