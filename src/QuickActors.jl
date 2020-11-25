@@ -32,9 +32,9 @@ function QuickActor(behavior)
 end
 gen_addr() = QuickAddr(rand(UInt64))
 
-struct ActorContext
+struct ActorContext{TActor}
     scheduler::QuickScheduler
-    actor::QuickActor
+    actor::TActor
 end
 
 Classic.self(ctx::ActorContext) = ctx.actor.addr

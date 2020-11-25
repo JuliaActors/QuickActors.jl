@@ -3,14 +3,14 @@ using QuickActors
 import ActorInterfaces.Implementation.Tick
 using Test
 
-abstract type MyMessage end
+#abstract type MyMessage end
 #Classic.SendStyle(::Type{<:MyMessage}) = Sendable()
 
 mutable struct Counter
     counter::Int
 end
 
-struct Increment <: MyMessage end
+struct Increment end #<: MyMessage end
 
 @actor function Classic.onmessage(me::Counter, ::Increment)
     me.counter += 1
@@ -18,7 +18,7 @@ end
 
 struct Spawner end
 
-struct SpawnTree <: MyMessage
+struct SpawnTree #<: MyMessage
     childcount::UInt8
     depth::UInt8
 end
@@ -121,8 +121,8 @@ struct BecamePonger
     depth::Int
 end
 
-struct BecamePing <: MyMessage end
-struct BecamePong <: MyMessage end
+struct BecamePing end # <: MyMessage end
+struct BecamePong end #<: MyMessage end
 
 @actor function Classic.onmessage(me::BecamePinger, msg::BecamePong)
     depth = me.depth
