@@ -1,80 +1,73 @@
 module QuickActors
 
-export QuickActor, QuickAddr, QuickScheduler, run!, send!, spawn!
+export QuickActor, QuickAddr, QuickScheduler
 
 using ActorInterfaces.Classic
 using ActorInterfaces.Implementation
 using ActorInterfaces.Implementation.Tick
 
-struct QuickAddr <: Addr
+struct QuickAddr{TScheduler <: Context} <: Addr
     id::UInt64
-end
-Classic.SendStyle(::Type{QuickAddr}) = Sendable()
-
-struct QuickActor{TBehavior, TScheduler <: Scheduler} <: Actor{TBehavior}
-    addr::QuickAddr
     scheduler::TScheduler
+end
+
+struct QuickActor{TBehavior} <: Actor{TBehavior}
+    addr::QuickAddr
     behavior::TBehavior
 end
 
-function QuickActor(behavior, scheduler)
-    return QuickActor{typeof(behavior), typeof(scheduler)}(gen_addr(), scheduler, behavior)
-end
+QuickActor(behavior, scheduler) = QuickActor{typeof(behavior)}(gen_addr(scheduler), behavior)
 
-gen_addr() = QuickAddr(rand(UInt64))
+gen_addr(scheduler) = QuickAddr(rand(UInt64), scheduler)
 
-Classic.behavior(actor::QuickActor) = actor.behavior
-Classic.addr(actor::QuickActor) = actor.addr
+# Classic.behavior(actor::QuickActor) = actor.behavior
+# Classic.addr(actor::QuickActor) = actor.addr
 
 struct Envelope{TMsg <: Any} 
     to::QuickAddr
     msg::TMsg
 end
 
-struct QuickScheduler <: Implementation.Scheduler
+mutable struct QuickScheduler <: Implementation.Context
+    task::Task
     actorcache::Dict{QuickAddr, QuickActor}
     msgs::Array{Envelope}
-    QuickScheduler() = new(Dict(), [])
+    now::Union{Nothing,QuickActor}
 end
+QuickScheduler() = task_local_storage(:qs, QuickScheduler(current_task(), Dict(), [], nothing))
+
+Classic.context() = task_local_storage(:qs)
+
+Classic.self() = context().now.addr
 
 function Tick.tick!(sdl::QuickScheduler)::Bool
     isempty(sdl.msgs) && return false
     envelope = popfirst!(sdl.msgs)
-    actor = get!(sdl.actorcache, envelope.to, nothing)
-    isnothing(actor) && error("Actor with address $(msg.to) not scheduled.")
-    deliver!(actor, envelope.msg)
+    sdl.now = get!(sdl.actorcache, envelope.to, nothing)
+    isnothing(sdl.now) && error("Actor with address $(msg.to) not scheduled.")
+    deliver!(sdl.now, envelope.msg)
     return true
 end
 
-function deliver!(actor::QuickActor, msg)
-    if SendStyle(typeof(msg)) == Racing()
-        onmessage(actor, msg, Racing())
-    else
-        onmessage(actor, msg)
-    end
-end
+# run!(sdl::QuickScheduler) = while tick!(sdl) end
 
-function send!(sdl::QuickScheduler, target::QuickAddr, msg, ::Union{Sendable, Racing})
-    push!(sdl.msgs, Envelope(target, msg))
+deliver!(actor::QuickActor, msg) = onmessage(actor, msg)
+
+function Classic.send(target::QuickAddr, msg)
+    push!(target.scheduler.msgs, Envelope(target, msg))
     return nothing
 end
-send!(sdl::QuickScheduler, target::Addr, msg) = send!(sdl, target, msg, SendStyle(typeof(msg)))
 
-function spawn!(sdl::QuickScheduler, behavior)
-    actor = QuickActor(behavior, sdl)
-    sdl.actorcache[actor.addr] = actor
+function Classic.spawn(context, behavior)
+    actor = QuickActor(behavior, context)
+    context.actorcache[actor.addr] = actor
     return actor.addr
 end
+Classic.spawn(behavior) = spawn(context(), behavior)
 
-function Classic.send(sender::QuickActor, target::QuickAddr, msg, ::Union{Sendable, Racing})
-    send!(sender.scheduler, target, msg)
-end
-
-Classic.spawn(spawner::QuickActor, behavior) = spawn!(spawner.scheduler, behavior)
-
-function Classic.become(source::QuickActor, target)
-    sdl = source.scheduler
-    sdl.actorcache[addr(source)] = QuickActor(addr(source), sdl, target)
+function Classic.become(target)
+    sdl = context()
+    sdl.actorcache[sdl.now.addr] = QuickActor{typeof(target)}(sdl.now.addr, target)
 end
 
 end # module QuickActors
