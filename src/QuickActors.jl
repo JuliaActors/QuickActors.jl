@@ -49,7 +49,7 @@ function Tick.tick!(sdl::QuickScheduler)::Bool
 end
 
 function deliver!(ctx, msg)
-    onmessage(ctx.actor.behavior, msg, ctx)
+    Classic.onmessage(ctx.actor.behavior, msg, ctx)
 end
 
 function send!(sdl::QuickScheduler, target::QuickAddr, msg)
@@ -74,27 +74,6 @@ function Classic.become(target, ctx::ActorContext)
     sdl = ctx.scheduler
     actor = QuickActor(self(ctx), target)
     sdl.actorcache[self(ctx)] = ActorContext(sdl, actor)
-end
-
-function needs_ctx(expr)
-    return expr.head == :call && expr.args[1] in (:(Classic.onmessage), :spawn, :self, :send, :become)
-end
-
-function inject_ctx!(expr)
-    if needs_ctx(expr) && expr.args[end] != :ctx
-        push!(expr.args, :ctx)
-    end
-    for subexpr in expr.args
-        subexpr isa Expr && inject_ctx!(subexpr)
-    end
-    return expr
-end
-
-function Classic._actortransform(expr)
-    if expr.head != :function ||  expr.args[1].args[1] != :(Classic.onmessage)
-        error("@actor only handles Classic.onmessage method declarations")
-    end
-    return esc(inject_ctx!(expr))
 end
 
 end # module QuickActors
