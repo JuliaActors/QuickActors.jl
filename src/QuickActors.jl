@@ -9,22 +9,7 @@ using ActorInterfaces.Implementation.Tick
 struct QuickAddr <: Addr
     id::UInt64
 end
-Classic.SendStyle(::Type{QuickAddr}) = Sendable()
-
-struct QuickActor{TBehavior, TScheduler <: Scheduler} <: Actor{TBehavior}
-    addr::QuickAddr
-    scheduler::TScheduler
-    behavior::TBehavior
-end
-
-function QuickActor(behavior, scheduler)
-    return QuickActor{typeof(behavior), typeof(scheduler)}(gen_addr(), scheduler, behavior)
-end
-
-gen_addr() = QuickAddr(rand(UInt64))
-
-Classic.behavior(actor::QuickActor) = actor.behavior
-Classic.addr(actor::QuickActor) = actor.addr
+# Classic.SendStyle(::Type{QuickAddr}) = Sendable()
 
 struct Envelope{TMsg <: Any} 
     to::QuickAddr
@@ -32,49 +17,84 @@ struct Envelope{TMsg <: Any}
 end
 
 struct QuickScheduler <: Implementation.Scheduler
-    actorcache::Dict{QuickAddr, QuickActor}
+    actorcache::Dict{QuickAddr, Any}
     msgs::Array{Envelope}
     QuickScheduler() = new(Dict(), [])
 end
 
+struct QuickActor{TBehavior}
+    addr::QuickAddr
+    behavior::TBehavior
+end
+
+function QuickActor(behavior)
+    return QuickActor{typeof(behavior)}(gen_addr(), behavior)
+end
+gen_addr() = QuickAddr(rand(UInt64))
+
+struct ActorContext
+    scheduler::QuickScheduler
+    actor::QuickActor
+end
+
+Classic.self(ctx::ActorContext) = ctx.actor.addr
+
 function Tick.tick!(sdl::QuickScheduler)::Bool
     isempty(sdl.msgs) && return false
     envelope = popfirst!(sdl.msgs)
-    actor = get!(sdl.actorcache, envelope.to, nothing)
-    isnothing(actor) && error("Actor with address $(msg.to) not scheduled.")
-    deliver!(actor, envelope.msg)
+    ctx = get!(sdl.actorcache, envelope.to, nothing)
+    isnothing(ctx) && error("Actor with address $(msg.to) not scheduled.")
+    deliver!(ctx, envelope.msg)
     return true
 end
 
-function deliver!(actor::QuickActor, msg)
-    if SendStyle(typeof(msg)) == Racing()
-        onmessage(actor, msg, Racing())
-    else
-        onmessage(actor, msg)
-    end
+function deliver!(ctx, msg)
+    onmessage(ctx.actor.behavior, msg, ctx)
 end
 
-function send!(sdl::QuickScheduler, target::QuickAddr, msg, ::Union{Sendable, Racing})
+function send!(sdl::QuickScheduler, target::QuickAddr, msg)
     push!(sdl.msgs, Envelope(target, msg))
     return nothing
 end
-send!(sdl::QuickScheduler, target::Addr, msg) = send!(sdl, target, msg, SendStyle(typeof(msg)))
+# send!(sdl::QuickScheduler, target::Addr, msg) = send!(sdl, target, msg, SendStyle(typeof(msg)))
 
 function spawn!(sdl::QuickScheduler, behavior)
-    actor = QuickActor(behavior, sdl)
-    sdl.actorcache[actor.addr] = actor
+    actor = QuickActor(behavior)
+    sdl.actorcache[actor.addr] = ActorContext(sdl, actor)
     return actor.addr
 end
 
-function Classic.send(sender::QuickActor, target::QuickAddr, msg, ::Union{Sendable, Racing})
-    send!(sender.scheduler, target, msg)
+function Classic.send(target::QuickAddr, msg, ctx::ActorContext)
+    send!(ctx.scheduler, target, msg)
 end
 
-Classic.spawn(spawner::QuickActor, behavior) = spawn!(spawner.scheduler, behavior)
+Classic.spawn(behavior, ctx::ActorContext) = spawn!(ctx.scheduler, behavior)
 
-function Classic.become(source::QuickActor, target)
-    sdl = source.scheduler
-    sdl.actorcache[addr(source)] = QuickActor(addr(source), sdl, target)
+function Classic.become(target, ctx::ActorContext)
+    sdl = ctx.scheduler
+    actor = QuickActor(self(ctx), target)
+    sdl.actorcache[self(ctx)] = ActorContext(sdl, actor)
+end
+
+function needs_ctx(expr)
+    return expr.head == :call && expr.args[1] in (:(Classic.onmessage), :spawn, :self, :send, :become)
+end
+
+function inject_ctx!(expr)
+    if needs_ctx(expr) && expr.args[end] != :ctx
+        push!(expr.args, :ctx)
+    end
+    for subexpr in expr.args
+        subexpr isa Expr && inject_ctx!(subexpr)
+    end
+    return expr
+end
+
+function Classic._actortransform(expr)
+    if expr.head != :function ||  expr.args[1].args[1] != :(Classic.onmessage)
+        error("@actor only handles Classic.onmessage method declarations")
+    end
+    return esc(inject_ctx!(expr))
 end
 
 end # module QuickActors
