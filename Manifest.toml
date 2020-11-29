@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
 [[ActorInterfaces]]
-git-tree-sha1 = "b702554eec82944369d5dc897aa0d994afab18c4"
-repo-rev = "macro"
+git-tree-sha1 = "6efdd5bec34cbbcd0ecdd25391504280d9d27d2a"
+repo-rev = "main"
 repo-url = "https://github.com/JuliaActors/ActorInterfaces.jl"
 uuid = "7e194583-e687-41a0-9133-1c22a29c80af"
 version = "0.1.0"
