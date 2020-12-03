@@ -7,6 +7,7 @@ version = "0.1.0"
 ActorInterfaces = "7e194583-e687-41a0-9133-1c22a29c80af"
 
 [compat]
+ActorInterfaces = "0.1"
 julia = "^1"
 
 [extras]
