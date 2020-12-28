@@ -4,3 +4,8 @@
 git-tree-sha1 = "6efdd5bec34cbbcd0ecdd25391504280d9d27d2a"
 uuid = "7e194583-e687-41a0-9133-1c22a29c80af"
 version = "0.1.0"
+
+[[ActorInterfacesTests]]
+path = "../ActorInterfacesTests.jl"
+uuid = "bf64f69c-3949-4e90-aa8d-30c3e4cdf50d"
+version = "0.1.0"

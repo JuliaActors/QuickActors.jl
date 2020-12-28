@@ -5,6 +5,7 @@ version = "0.1.0"
 
 [deps]
 ActorInterfaces = "7e194583-e687-41a0-9133-1c22a29c80af"
+ActorInterfacesTests = "bf64f69c-3949-4e90-aa8d-30c3e4cdf50d"
 
 [compat]
 ActorInterfaces = "0.1"
