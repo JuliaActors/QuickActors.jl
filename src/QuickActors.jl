@@ -49,10 +49,10 @@ function Tick.tick!(sdl::QuickScheduler)::Bool
 end
 
 function deliver!(ctx, msg)
-    ctx.actor.behavior(msg; ctx)
+    ctx.actor.behavior(msg...; ctx)
 end
 
-function send!(sdl::QuickScheduler, target::QuickAddr, msg)
+function send!(sdl::QuickScheduler, target::QuickAddr, msg...)
     push!(sdl.msgs, Envelope(target, msg))
     return nothing
 end
@@ -64,16 +64,26 @@ function spawn!(sdl::QuickScheduler, behavior)
     return actor.addr
 end
 
-function Classic.send(target::QuickAddr, msg; ctx::ActorContext)
-    send!(ctx.scheduler, target, msg)
+function spawn!(sdl::QuickScheduler, behavior, aquintance1, aquintances...)
+    stateful_bhv = (msg...; ctx) -> behavior(aquintance1, aquintances..., msg...; ctx)
+    return spawn!(sdl, stateful_bhv)
 end
 
-Classic.spawn(behavior; ctx::ActorContext) = spawn!(ctx.scheduler, behavior)
+function Classic.send(target::QuickAddr, msg...; ctx::ActorContext)
+    send!(ctx.scheduler, target, msg...)
+end
 
-function Classic.become(target; ctx::ActorContext)
+Classic.spawn(behavior, aquintances...; ctx::ActorContext) = spawn!(ctx.scheduler, behavior, aquintances...)
+
+function Classic.become(newbhv; ctx::ActorContext)
     sdl = ctx.scheduler
-    actor = QuickActor(self(;ctx), target)
+    actor = QuickActor(self(;ctx), newbhv)
     sdl.actorcache[self(;ctx)] = ActorContext(sdl, actor)
+end
+
+function Classic.become(newbhv, aquintance1, aquintances...; ctx::ActorContext)
+    stateful_bhv = (msg...; ctx) -> newbhv(aquintance1, aquintances..., msg...; ctx)
+    Classic.become(stateful_bhv; ctx)
 end
 
 end # module QuickActors
