@@ -12,7 +12,7 @@ end
 
 struct Increment end #<: MyMessage end
 
-@ctx function Classic.onmessage(me::Counter, ::Increment)
+@ctx function (me::Counter)(::Increment)
     me.counter += 1
 end
 
@@ -23,7 +23,7 @@ struct SpawnTree #<: MyMessage
     depth::UInt8
 end
 
-@ctx function Classic.onmessage(me::Spawner, msg::SpawnTree)
+@ctx function (me::Spawner)(msg::SpawnTree)
     if msg.depth > 0
         for i = 1:msg.childcount
             child = spawn(Spawner())
@@ -124,7 +124,7 @@ end
 struct BecamePing end # <: MyMessage end
 struct BecamePong end #<: MyMessage end
 
-@ctx function Classic.onmessage(me::BecamePinger, msg::BecamePong)
+@ctx function (me::BecamePinger)(msg::BecamePong)
     depth = me.depth
     if depth > 0
         become(BecamePonger(depth))
@@ -133,7 +133,7 @@ struct BecamePong end #<: MyMessage end
     return nothing
 end
 
-@ctx function Classic.onmessage(me::BecamePonger, msg::BecamePing)
+@ctx function (me::BecamePonger)(msg::BecamePing)
     depth = me.depth
     if depth > 0
         become(BecamePinger(depth - 1))

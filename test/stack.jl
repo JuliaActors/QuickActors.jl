@@ -17,16 +17,16 @@ struct Forwarder
     target::Addr
 end
 
-@ctx function Classic.onmessage(me::Forwarder, msg)
+@ctx function (me::Forwarder)(msg)
     send(me.target, msg)
 end
 
-@ctx function Classic.onmessage(me::StackNode, msg::Push)
+@ctx function (me::StackNode)(msg::Push)
     p = spawn(StackNode(me.content, me.link))
     become(StackNode(msg.content, p))
 end
 
-@ctx function Classic.onmessage(me::StackNode, msg::Pop)
+@ctx function (me::StackNode)(msg::Pop)
     if !isnothing(me.link)
         become(Forwarder(me.link))
     end
@@ -41,7 +41,7 @@ struct TestCoordinator
     received::Vector{Any}
 end
 
-@ctx function Classic.onmessage(me::TestCoordinator, msg)
+@ctx function (me::TestCoordinator)(msg)
     push!(me.received, msg)
 end
 

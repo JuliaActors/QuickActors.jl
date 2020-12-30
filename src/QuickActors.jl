@@ -37,7 +37,7 @@ struct ActorContext{TActor}
     actor::TActor
 end
 
-Classic.self(ctx::ActorContext) = ctx.actor.addr
+Classic.self(;ctx::ActorContext) = ctx.actor.addr
 
 function Tick.tick!(sdl::QuickScheduler)::Bool
     isempty(sdl.msgs) && return false
@@ -49,7 +49,7 @@ function Tick.tick!(sdl::QuickScheduler)::Bool
 end
 
 function deliver!(ctx, msg)
-    Classic.onmessage(ctx.actor.behavior, msg, ctx)
+    ctx.actor.behavior(msg; ctx)
 end
 
 function send!(sdl::QuickScheduler, target::QuickAddr, msg)
@@ -64,16 +64,16 @@ function spawn!(sdl::QuickScheduler, behavior)
     return actor.addr
 end
 
-function Classic.send(target::QuickAddr, msg, ctx::ActorContext)
+function Classic.send(target::QuickAddr, msg; ctx::ActorContext)
     send!(ctx.scheduler, target, msg)
 end
 
-Classic.spawn(behavior, ctx::ActorContext) = spawn!(ctx.scheduler, behavior)
+Classic.spawn(behavior; ctx::ActorContext) = spawn!(ctx.scheduler, behavior)
 
-function Classic.become(target, ctx::ActorContext)
+function Classic.become(target; ctx::ActorContext)
     sdl = ctx.scheduler
-    actor = QuickActor(self(ctx), target)
-    sdl.actorcache[self(ctx)] = ActorContext(sdl, actor)
+    actor = QuickActor(self(;ctx), target)
+    sdl.actorcache[self(;ctx)] = ActorContext(sdl, actor)
 end
 
 end # module QuickActors
