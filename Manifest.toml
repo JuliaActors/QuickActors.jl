@@ -9,7 +9,7 @@ version = "0.2.0"
 
 [[ActorInterfacesTests]]
 deps = ["ActorInterfaces", "Test"]
-git-tree-sha1 = "692aca4e5c5186e8460fe3bd8ea30b1aa3501b12"
+git-tree-sha1 = "b8d2d470809076a7c2e1869f33398578ca6f7548"
 repo-rev = "main"
 repo-url = "https://github.com/JuliaActors/ActorInterfacesTests.jl"
 uuid = "bf64f69c-3949-4e90-aa8d-30c3e4cdf50d"
