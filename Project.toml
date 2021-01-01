@@ -9,6 +9,7 @@ ActorInterfacesTests = "bf64f69c-3949-4e90-aa8d-30c3e4cdf50d"
 
 [compat]
 ActorInterfaces = "0.2"
+ActorInterfacesTests = "0.1"
 julia = "^1"
 
 [extras]
